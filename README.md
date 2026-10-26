@@ -55,3 +55,19 @@ This repository is public, so:
 ## License
 
 [MIT](LICENSE)
+
+## One-time authorisation
+
+RTM needs an auth token next to the API key and shared secret. Get it once, on your own machine:
+
+```sh
+npm ci && npm run build
+export RTM_API_KEY=...        # set in your shell, not in a file in this repo
+export RTM_SHARED_SECRET=...
+node scripts/rtm-authorize.mjs start      # prints an approval URL and a frob
+# open the URL, approve, then:
+node scripts/rtm-authorize.mjs finish <frob>   # prints the auth token
+```
+
+Put the token in the n8n credential field "Auth Token" only. The key and secret are read from the
+environment, never from arguments, so they stay out of shell history.
