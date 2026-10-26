@@ -20,7 +20,17 @@ export type FetchLike = (
 export interface RtmCallOptions {
   fetchImpl?: FetchLike;
   timeoutMs?: number;
+  /** Extra attempts when no connection could be made at all (default 2). */
+  connectRetries?: number;
+  /** Pause between such attempts in ms (default 500). */
+  retryDelayMs?: number;
 }
+
+/**
+ * Error codes that mean "the request never left": no connection was made. Retrying these is safe
+ * even for calls that change data, because RTM cannot have received anything.
+ */
+const NOT_SENT_CODES = new Set(['UND_ERR_CONNECT_TIMEOUT', 'ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ENETUNREACH', 'EHOSTUNREACH']);
 
 /**
  * Error raised for every failure of an RTM call.
@@ -85,20 +95,29 @@ export async function rtmCall(
   }
 
   // Block: send. Whatever the transport throws is replaced by a safe error (it may carry the URL).
+  // A failure to connect is retried (see NOT_SENT_CODES); anything else is reported at once.
+  const attempts = 1 + (options.connectRetries ?? 2);
   let response;
-  try {
-    response = await fetchImpl(RTM_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString(),
-      signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
-    });
-  } catch (error) {
-    // Only a plain error code (ENOTFOUND, UND_ERR_CONNECT_TIMEOUT, TimeoutError, ...) is passed on:
-    // it helps to find the cause and cannot hold the URL, the body or a credential.
-    const code = String((error as { cause?: { code?: unknown } })?.cause?.code ?? (error as Error)?.name ?? '');
-    const hint = /^[A-Za-z0-9_]{1,40}$/.test(code) ? `: ${code}` : '';
-    throw new RtmError('network', `Could not reach Remember The Milk (${method})${hint}`);
+  for (let attempt = 1; ; attempt++) {
+    try {
+      response = await fetchImpl(RTM_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+        signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
+      });
+      break;
+    } catch (error) {
+      // Only a plain error code (ENOTFOUND, UND_ERR_CONNECT_TIMEOUT, TimeoutError, ...) is passed on:
+      // it helps to find the cause and cannot hold the URL, the body or a credential.
+      const code = String((error as { cause?: { code?: unknown } })?.cause?.code ?? (error as Error)?.name ?? '');
+      if (NOT_SENT_CODES.has(code) && attempt < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, options.retryDelayMs ?? 500));
+        continue;
+      }
+      const hint = /^[A-Za-z0-9_]{1,40}$/.test(code) ? `: ${code}` : '';
+      throw new RtmError('network', `Could not reach Remember The Milk (${method})${hint}`);
+    }
   }
 
   // Block: HTTP status, then JSON, then the RTM status inside the JSON.

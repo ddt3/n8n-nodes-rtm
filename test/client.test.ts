@@ -114,6 +114,42 @@ describe('leak safety', () => {
   });
 });
 
+describe('connect retries', () => {
+  const connectFail = () => Object.assign(new TypeError('fetch failed'), { cause: { code: 'UND_ERR_CONNECT_TIMEOUT' } });
+
+  it('retries when no connection could be made and then succeeds', async () => {
+    let calls = 0;
+    const fetchImpl: FetchLike = async () => {
+      calls++;
+      if (calls < 3) throw connectFail();
+      return { ok: true, status: 200, text: async () => ok() };
+    };
+    await rtmCall(creds, 'm', {}, { fetchImpl, retryDelayMs: 0 });
+    expect(calls).toBe(3);
+  });
+
+  it('gives up after the retries and reports the code', async () => {
+    let calls = 0;
+    const fetchImpl: FetchLike = async () => {
+      calls++;
+      throw connectFail();
+    };
+    const error = (await rtmCall(creds, 'm', {}, { fetchImpl, retryDelayMs: 0, connectRetries: 1 }).catch((e) => e)) as RtmError;
+    expect(calls).toBe(2);
+    expect(error.message).toContain('UND_ERR_CONNECT_TIMEOUT');
+  });
+
+  it('does not retry errors where the request may have been sent', async () => {
+    let calls = 0;
+    const fetchImpl: FetchLike = async () => {
+      calls++;
+      throw Object.assign(new Error('x'), { cause: { code: 'UND_ERR_SOCKET' } });
+    };
+    await rtmCall(creds, 'm', {}, { fetchImpl, retryDelayMs: 0 }).catch(() => undefined);
+    expect(calls).toBe(1);
+  });
+});
+
 describe('createTimeline', () => {
   it('returns the timeline id', async () => {
     const { fetchImpl, calls } = fake(ok({ timeline: '12345' }));
