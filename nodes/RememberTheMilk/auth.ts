@@ -86,7 +86,7 @@ export async function runAuthorizeCli(argv: string[], io: CliIo): Promise<number
   try {
     if (command === 'start') {
       const frob = await getFrob(creds, io.options);
-      io.out(`Open this URL, approve access, then run: rtm-authorize finish ${frob}`);
+      io.out(`Open this URL, approve access, then run: node scripts/rtm-authorize.mjs finish ${frob}`);
       io.out(buildAuthUrl(creds, frob, arg ?? 'delete'));
       return 0;
     }
@@ -97,7 +97,7 @@ export async function runAuthorizeCli(argv: string[], io: CliIo): Promise<number
       io.out(result.token);
       return 0;
     }
-    io.err('Usage: rtm-authorize start [read|write|delete] | rtm-authorize finish <frob>');
+    io.err('Usage: node scripts/rtm-authorize.mjs start [read|write|delete] | finish <frob>');
     return 2;
   } catch (error) {
     io.err(error instanceof RtmError ? error.message : 'Unexpected error');
