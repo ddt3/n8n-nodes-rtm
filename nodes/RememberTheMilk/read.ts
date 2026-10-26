@@ -39,7 +39,7 @@ export interface RtmTask {
 }
 
 /** RTM's JSON turns one-element lists into plain objects and empty ones into [] or "": undo that. */
-function toArray<T>(value: unknown): T[] {
+export function toArray<T>(value: unknown): T[] {
   if (Array.isArray(value)) return value as T[];
   if (value && typeof value === 'object') return [value as T];
   return [];
