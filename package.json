@@ -31,7 +31,9 @@
   },
   "n8n": {
     "n8nNodesApiVersion": 1,
-    "credentials": [],
+    "credentials": [
+      "dist/credentials/RememberTheMilkApi.credentials.js"
+    ],
     "nodes": [
       "dist/nodes/RememberTheMilk/RememberTheMilk.node.js"
     ]

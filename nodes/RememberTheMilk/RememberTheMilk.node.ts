@@ -24,6 +24,7 @@ export class RememberTheMilk implements INodeType {
     defaults: { name: 'Remember The Milk' },
     inputs: [NodeConnectionTypes.Main],
     outputs: [NodeConnectionTypes.Main],
+    credentials: [{ name: 'rememberTheMilkApi', required: true }],
     properties: [],
   };
 
