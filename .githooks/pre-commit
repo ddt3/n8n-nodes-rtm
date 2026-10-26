@@ -1,0 +1,4 @@
+#!/bin/sh
+# Pre-commit hook: refuse to commit anything that looks like a secret.
+# This repository is PUBLIC. Installed automatically by `npm install` (see "prepare").
+exec node scripts/secret-scan.mjs --staged
