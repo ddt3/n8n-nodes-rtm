@@ -1,0 +1,21 @@
+# Build output and dependencies
+dist/
+node_modules/
+
+# Secrets must never be committed (this is a PUBLIC repository).
+# Credentials live only in n8n's encrypted credential store.
+.env
+.env.*
+*.env
+*.pem
+*.key
+secrets/
+*.secret
+*.secrets
+credentials.json
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+*.log

@@ -1,0 +1,48 @@
+{
+  "name": "n8n-nodes-rtm",
+  "version": "0.0.0",
+  "description": "n8n community node for the Remember The Milk API. Credentials are stored in n8n's encrypted credential store; request signing happens inside the node.",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "remember-the-milk",
+    "rtm"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ddt3/n8n-nodes-rtm.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run lint && npm run typecheck && npm run build && npm test"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [],
+    "nodes": [
+      "dist/nodes/RememberTheMilk/RememberTheMilk.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "eslint": "^10.13.0",
+    "n8n-workflow": "^2.16.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}

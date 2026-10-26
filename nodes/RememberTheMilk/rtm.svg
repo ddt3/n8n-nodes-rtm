@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="60" height="60" role="img" aria-label="Task checklist icon">
+  <!-- Generic checklist icon (original artwork, not a vendor logo). -->
+  <rect x="6" y="6" width="48" height="48" rx="10" fill="#2b6cb0"/>
+  <path d="M17 31l9 9 17-19" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
