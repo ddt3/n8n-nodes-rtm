@@ -27,7 +27,8 @@
     "test": "vitest run",
     "check": "npm run lint && npm run typecheck && npm run build && npm run scan-secrets && npm test",
     "prepare": "git config core.hooksPath .githooks || true",
-    "scan-secrets": "node scripts/secret-scan.mjs --all"
+    "scan-secrets": "node scripts/secret-scan.mjs --all",
+    "prepack": "npm run build"
   },
   "n8n": {
     "n8nNodesApiVersion": 1,
