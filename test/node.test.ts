@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
 import { RememberTheMilk } from '../nodes/RememberTheMilk/RememberTheMilk.node';
 
-// Tests for the node skeleton (Feature A / Step 1).
-describe('RememberTheMilk node skeleton', () => {
+// Tests for the node identity (Feature A / Step 1) and execution (Feature D / Step 3).
+describe('RememberTheMilk node', () => {
   const node = new RememberTheMilk();
 
   it('declares the identity n8n needs to list the node', () => {
@@ -19,13 +19,38 @@ describe('RememberTheMilk node skeleton', () => {
     expect(node.description.outputs).toHaveLength(1);
   });
 
-  it('passes input items through unchanged until operations exist', async () => {
-    // Block: a minimal fake execution context that only supplies the input items.
-    const items: INodeExecutionData[] = [{ json: { example: 1 } }];
-    const context = { getInputData: () => items } as unknown as IExecuteFunctions;
+  // Block: execute() with a fake n8n context and a stubbed network.
+  const secret = ['sec', 'X9y8', 'Z7w6'].join('');
+  const context = (params: Record<string, unknown>, items: INodeExecutionData[], continueOnFail = false) =>
+    ({
+      getInputData: () => items,
+      getCredentials: async () => ({ apiKey: ['key', 'A1b2'].join(''), sharedSecret: secret, authToken: ['tok', 'Q1w2'].join('') }),
+      getNodeParameter: (name: string, _i: number, fallback?: unknown) => params[name] ?? fallback,
+      continueOnFail: () => continueOnFail,
+      getNode: () => ({ name: 'Remember The Milk' }),
+    }) as unknown as IExecuteFunctions;
+  const stubFetch = (rsp: object) =>
+    vi.stubGlobal('fetch', async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ rsp }) }));
+  afterEach(() => vi.unstubAllGlobals());
 
-    const result = await node.execute.call(context);
+  it('returns one output row per result, paired with its input item', async () => {
+    stubFetch({ stat: 'ok', lists: { list: [{ id: '1', name: 'Inbox' }, { id: '2', name: 'Privé' }] } });
+    const [out] = await node.execute.call(context({ resource: 'list', operation: 'getAll' }, [{ json: {} }]));
+    expect(out.map((o) => o.json.name)).toEqual(['Inbox', 'Privé']);
+    expect(out[0].pairedItem).toEqual({ item: 0 });
+  });
 
-    expect(result).toEqual([items]);
+  it('stops with a credential-free error by default', async () => {
+    stubFetch({ stat: 'fail', err: { code: '98', msg: `Login failed ${secret}` } });
+    const run = node.execute.call(context({ resource: 'list', operation: 'getAll' }, [{ json: {} }]));
+    await expect(run).rejects.toThrow('Login failed');
+    await expect(run).rejects.not.toThrow(secret);
+  });
+
+  it('turns an error into an error field on that item with Continue On Fail', async () => {
+    stubFetch({ stat: 'fail', err: { code: '98', msg: 'Login failed' } });
+    const [out] = await node.execute.call(context({ resource: 'list', operation: 'getAll' }, [{ json: {} }], true));
+    expect(out).toHaveLength(1);
+    expect(String(out[0].json.error)).toContain('Login failed');
   });
 });
