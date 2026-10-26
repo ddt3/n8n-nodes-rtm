@@ -96,6 +96,22 @@ describe('leak safety', () => {
     for (const secret of all) expect(text).not.toContain(secret);
     expect(text).not.toContain('rememberthemilk.com');
   });
+
+  it('passes on a plain error code as a hint, but nothing else from the transport error', async () => {
+    const fetchImpl: FetchLike = async (url) => {
+      throw Object.assign(new TypeError(`fetch failed ${url}`), { cause: { code: 'UND_ERR_CONNECT_TIMEOUT', message: creds.apiKey } });
+    };
+    const error = (await rtmCall(creds, 'm', {}, { fetchImpl }).catch((e) => e)) as RtmError;
+    expect(error.message).toBe('Could not reach Remember The Milk (m): UND_ERR_CONNECT_TIMEOUT');
+  });
+
+  it('drops a code that is not a plain identifier', async () => {
+    const fetchImpl: FetchLike = async () => {
+      throw Object.assign(new Error('x'), { cause: { code: `https://x.test/?k=${creds.apiKey}` } });
+    };
+    const error = (await rtmCall(creds, 'm', {}, { fetchImpl }).catch((e) => e)) as RtmError;
+    expect(error.message).toBe('Could not reach Remember The Milk (m)');
+  });
 });
 
 describe('createTimeline', () => {

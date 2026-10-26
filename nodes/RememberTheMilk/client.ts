@@ -93,8 +93,12 @@ export async function rtmCall(
       body: body.toString(),
       signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
     });
-  } catch {
-    throw new RtmError('network', `Could not reach Remember The Milk (${method})`);
+  } catch (error) {
+    // Only a plain error code (ENOTFOUND, UND_ERR_CONNECT_TIMEOUT, TimeoutError, ...) is passed on:
+    // it helps to find the cause and cannot hold the URL, the body or a credential.
+    const code = String((error as { cause?: { code?: unknown } })?.cause?.code ?? (error as Error)?.name ?? '');
+    const hint = /^[A-Za-z0-9_]{1,40}$/.test(code) ? `: ${code}` : '';
+    throw new RtmError('network', `Could not reach Remember The Milk (${method})${hint}`);
   }
 
   // Block: HTTP status, then JSON, then the RTM status inside the JSON.
