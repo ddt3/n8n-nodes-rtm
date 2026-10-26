@@ -32,6 +32,8 @@ credential form only. **Never put them in this repository, in a workflow or in a
 
 ## Development
 
+Development needs Node 22.12 or newer (CI runs Node 22 and 24).
+
 ```sh
 npm install        # also installs the pre-commit secret scan (core.hooksPath = .githooks)
 npm run check      # lint (0 warnings), typecheck, build, secret scan, tests
