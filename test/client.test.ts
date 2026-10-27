@@ -162,3 +162,15 @@ describe('createTimeline', () => {
     await expect(createTimeline(creds, { fetchImpl })).rejects.toThrow('no timeline');
   });
 });
+
+describe('rtmCall connect failures from the default transport', () => {
+  it('retries RTM_CONNECT_FAILED (nothing was sent) and then succeeds', async () => {
+    let n = 0;
+    const fetchImpl: FetchLike = async () => {
+      if (++n < 3) throw Object.assign(new Error('x'), { code: 'RTM_CONNECT_FAILED' });
+      return { ok: true, status: 200, text: async () => ok() };
+    };
+    await rtmCall(creds, 'rtm.test.echo', {}, { fetchImpl, retryDelayMs: 1 });
+    expect(n).toBe(3);
+  });
+});

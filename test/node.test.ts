@@ -2,6 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
 import { RememberTheMilk } from '../nodes/RememberTheMilk/RememberTheMilk.node';
 
+// The default transport talks to the real network; these tests stub `fetch`, so route the transport through it.
+vi.mock('../nodes/RememberTheMilk/transport', () => ({
+  CONNECT_FAILED: 'RTM_CONNECT_FAILED',
+  createTransport: () => (url: string, init: object) => (globalThis.fetch as unknown as (u: string, i: object) => Promise<never>)(url, init),
+}));
+
 // Tests for the node identity (Feature A / Step 1) and execution (Feature D / Step 3).
 describe('RememberTheMilk node', () => {
   const node = new RememberTheMilk();

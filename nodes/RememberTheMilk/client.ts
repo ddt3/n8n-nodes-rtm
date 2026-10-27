@@ -1,4 +1,5 @@
 import { signRequest, type RtmParams } from './signature';
+import { CONNECT_FAILED, createTransport } from './transport';
 
 /** Where all RTM REST calls go. */
 export const RTM_ENDPOINT = 'https://api.rememberthemilk.com/services/rest/';
@@ -30,7 +31,7 @@ export interface RtmCallOptions {
  * Error codes that mean "the request never left": no connection was made. Retrying these is safe
  * even for calls that change data, because RTM cannot have received anything.
  */
-const NOT_SENT_CODES = new Set(['UND_ERR_CONNECT_TIMEOUT', 'ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ENETUNREACH', 'EHOSTUNREACH']);
+const NOT_SENT_CODES = new Set([CONNECT_FAILED, 'UND_ERR_CONNECT_TIMEOUT', 'ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ENETUNREACH', 'EHOSTUNREACH']);
 
 /**
  * Error raised for every failure of an RTM call.
@@ -59,6 +60,9 @@ export function redact(text: string, secrets: Array<string | undefined>): string
     .reduce((out, secret) => out.split(secret).join('[redacted]'), text);
 }
 
+/** Default transport: tries every address of the RTM host in turn (see transport.ts). */
+const defaultTransport: FetchLike = createTransport();
+
 /**
  * Performs one signed RTM call and returns the `rsp` object of a successful answer.
  *
@@ -79,7 +83,7 @@ export async function rtmCall(
   options: RtmCallOptions = {},
 ): Promise<Record<string, unknown>> {
   const secrets = [creds.apiKey, creds.sharedSecret, creds.authToken];
-  const fetchImpl: FetchLike = options.fetchImpl ?? (fetch as unknown as FetchLike);
+  const fetchImpl: FetchLike = options.fetchImpl ?? defaultTransport;
 
   // Block: assemble the parameters and sign them (the signature covers everything but itself).
   const all: RtmParams = {
@@ -110,7 +114,7 @@ export async function rtmCall(
     } catch (error) {
       // Only a plain error code (ENOTFOUND, UND_ERR_CONNECT_TIMEOUT, TimeoutError, ...) is passed on:
       // it helps to find the cause and cannot hold the URL, the body or a credential.
-      const code = String((error as { cause?: { code?: unknown } })?.cause?.code ?? (error as Error)?.name ?? '');
+      const code = String((error as { cause?: { code?: unknown } })?.cause?.code ?? (error as { code?: unknown })?.code ?? (error as Error)?.name ?? '');
       if (NOT_SENT_CODES.has(code) && attempt < attempts) {
         await new Promise((resolve) => setTimeout(resolve, options.retryDelayMs ?? 500));
         continue;

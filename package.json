@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-rtm",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "n8n community node for the Remember The Milk API. Credentials are stored in n8n's encrypted credential store; request signing happens inside the node.",
   "keywords": [
     "n8n-community-node-package",
